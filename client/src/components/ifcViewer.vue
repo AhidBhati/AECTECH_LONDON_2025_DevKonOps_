@@ -17,57 +17,64 @@
   // Reference for the container where the model will be rendered
   const canvasContainer = ref(null);
   
-  // Three.js setup for the scene
-  let scene, camera, renderer, loader, controls;
+// Three.js setup for the scene
+let scene, camera, renderer, loader, controls, raycaster, mouse;
   
-  onMounted(() => {
-    // Set up the scene, camera, and renderer
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+// Initialize raycaster and mouse
+raycaster = new THREE.Raycaster();
+mouse = new THREE.Vector2();
+
+onMounted(() => {
+  // Set up the scene, camera, and renderer
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+
+  // Set renderer size and append to the canvas container
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  canvasContainer.value.appendChild(renderer.domElement);
+
+  // Camera position
+  camera.position.set(0, 2, 10);
+  camera.lookAt(0, 0, 0);
+
+  // Add lighting to the scene
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(10, 10, 10);
+  scene.add(light);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+
+  // Initialize the IFC loader
+  loader = new IFCLoader();
+  loader.ifcManager.setWasmPath('/');
+
+  // Initialize OrbitControls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.screenSpacePanning = false;
+  controls.minDistance = 1;
+  controls.maxDistance = 50;
+
+  // Add click event listener
+  renderer.domElement.addEventListener('click', onClick);
+
+  // Render the scene
+  animate();
+});
   
-    // Set renderer size and append to the canvas container
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    canvasContainer.value.appendChild(renderer.domElement);
-  
-    // Camera position
-    camera.position.set(0, 2, 10);
-    camera.lookAt(0, 0, 0);
-  
-    // Add lighting to the scene
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(10, 10, 10);
-    scene.add(light);
-  
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-  
-    // Initialize the IFC loader
-    loader = new IFCLoader();
-    loader.ifcManager.setWasmPath('/'); // Path to the WASM file in the public folder
-  
-    // Initialize OrbitControls
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Smooth camera movement
-    controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = false; // Disable panning
-    controls.minDistance = 1; // Minimum zoom distance
-    controls.maxDistance = 50; // Maximum zoom distance
-  
-    // Render the scene
-    animate();
-  });
-  
-  // Animation loop
-  function animate() {
-    requestAnimationFrame(animate);
-  
-    // Update controls
-    controls.update();
-  
-    // Render the scene from the camera's perspective
-    renderer.render(scene, camera);
-  }
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Update controls
+  controls.update();
+
+  // Render the scene from the camera's perspective
+  renderer.render(scene, camera);
+}
   
   // Handle file upload
   const handleFileUpload = (event) => {
@@ -126,6 +133,25 @@
       }
     );
   };
+  
+  // Handle click event to get coordinates
+function onClick(event) {
+  // Calculate mouse position in normalized device coordinates (-1 to +1)
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  // Set raycaster from camera and mouse position
+  raycaster.setFromCamera(mouse, camera);
+
+  // Check for intersections with objects in the scene
+  const intersects = raycaster.intersectObjects(scene.children, true);
+
+  if (intersects.length > 0) {
+    const point = intersects[0].point; // Get the intersection point
+    console.log('Clicked coordinates:', point.x, point.y, point.z);
+  }
+}
   </script>
   
   <style scoped>

@@ -19,13 +19,18 @@
       <div v-else>
         <p>No chats available.</p>
       </div>
+      <ifcViewer /> <!-- Include the ifcViewer component here -->
     </div>
   </template>
   
   <script>
   import axios from "axios";
+  import ifcViewer from "./ifcViewer.vue"; // Import the ifcViewer component
   
   export default {
+    components: {
+      ifcViewer, // Register the ifcViewer component
+    },
     data() {
       return {
         chats: [], // Array to store chats
