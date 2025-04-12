@@ -1,28 +1,24 @@
 <template>
     <div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
       <h1>Capture Image and Create Chat</h1>
-  
+      <!-- Close Button -->
+      <button @click="closeModal" style=" border: none; font-size: 20px; cursor: pointer;">X</button>
+    </div>
+
       <!-- Video Stream for Camera -->
       <div v-if="showVideo">
         <video ref="video" autoplay playsinline style="width: 100%; max-width: 400px;"></video>
-        <button @click="flipCamera">Flip Camera</button>
+        <br/>
+        <button @click="flipCamera">Flip Camera</button> --
+        <button v-if="showVideo" @click="captureImage">Capture Image</button>
       </div>
-  
-      <!-- Capture Button -->
-      <button v-if="showVideo" @click="captureImage">Capture Image</button>
-  
-      <!-- Preview Captured Image -->
       <div v-if="capturedImage">
         <h3>Preview:</h3>
         <img :src="capturedImage" alt="Captured Image" style="max-width: 400px; margin-top: 10px;" />
       </div>
   
-      <!-- Form to Submit Chat -->
       <form @submit.prevent="createChat">
-        <!-- <div>
-          <label for="createdBy">Created By:</label>
-          <input type="text" id="createdBy" v-model="createdBy" required />
-        </div> -->
         <div>
           <label for="title">Title:</label>
           <input type="text" id="title" v-model="title" required />
@@ -31,25 +27,12 @@
           <label for="description">Description:</label>
           <input type="text" id="description" v-model="description" required />
         </div>
-        <!-- <div>
-          <label for="comments">Comments:</label>
-          <textarea id="comments" v-model="comments" placeholder="Enter comments (comma-separated)" required></textarea>
-        </div> -->
-        <!-- <div>
-          <label for="status">Status:</label>
-          <input type="text" id="status" v-model="status" required />
-        </div> -->
         <div>
           <label for="location">Location:</label>
           <input type="text" id="x" v-model="location.x" placeholder="x" required />
           <input type="text" id="y" v-model="location.y" placeholder="y" required />
           <input type="text" id="z" v-model="location.z" placeholder="y" required />
         </div>
-        <div>
-          <label for="ifc">IFC:</label>
-          <input type="text" id="ifc" v-model="ifc" required />
-        </div>
-  
         <button type="submit">Create Chat</button>
       </form>
     </div>
@@ -57,8 +40,15 @@
   
   <script>
   import axios from "axios";
-  
+  import { EventBus } from "../eventBus"; 
   export default {
+    props: {
+    location: {
+      type: Object,
+      required: true,
+    },
+  },
+    
     data() {
       return {
           createdBy: "USER",
@@ -66,12 +56,6 @@
           description: "",
           comments: [],
           status: "Open",
-          location: {
-            x: "",
-            y: "",
-            z: "",
-          },
-          ifc: "",
           image: "", // Base64 string of the captured image
         capturedImage: null, // For displaying the captured image
         showVideo: true, // To toggle the video stream visibility
@@ -138,18 +122,6 @@
             image : this.capturedImage, // Base64 string of the captured image
 
             }
-            // formData.append("createdBy", this.createdBy);
-            // formData.append("title", this.title);
-            // formData.append("description", this.description);
-            // formData.append("status", this.status);
-            // formData.append("location", JSON.stringify(this.location));
-            // formData.append("ifc", this.ifc);
-
-            // Append the image file
-            // if (this.capturedImage) {
-            // const blob = await fetch(this.capturedImage).then((res) => res.blob());
-            // chatData.image = blob; // Store the blob in the chat object
-            // }
             console.log("chatData:", chatData); // Log the FormData object for debugging
             // Send the data to the backend
             const response = await axios.post("http://localhost:5000/api/chats/new", chatData, {
@@ -162,11 +134,17 @@
             this.showVideo = true;
 
             console.log("Chat created:", response.data);
+            EventBus.emit("chatCreated"); // Emit the event
+            this.$emit("close");
+
         } catch (error) {
             console.error("Error creating chat:", error);
             // alert("Failed to create chat. Please try again.");
         }
         },
+        closeModal() {
+      this.$emit("close");
+    },
     },
     mounted() {
       // Start the camera when the component is mounted

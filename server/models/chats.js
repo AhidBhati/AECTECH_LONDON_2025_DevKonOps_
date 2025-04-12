@@ -21,10 +21,6 @@ const chatSchema = new mongoose.Schema({
     type: Object,
     required: true
   },
-  ifc: {
-    type: String,
-    required: true
-  },
   image: {
     type: String,
     required: false 

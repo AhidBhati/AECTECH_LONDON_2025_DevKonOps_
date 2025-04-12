@@ -33,7 +33,7 @@
         try {
           // Prepare the comment data
           const commentData = {
-            chatID: '67fabb4b26f72fce9e0792ce', // Chat ID passed as a prop
+            chatID: this.$route.params.chatID, // Chat ID passed as a prop
             description: this.description,
           };
   

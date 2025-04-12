@@ -1,9 +1,10 @@
 <template>
     <div>
-      <h2>IFC Model Viewer</h2>
-      <!-- The canvas where Three.js renders the model will go here -->
-      <div ref="canvasContainer"></div>
       <input type="file" @change="handleFileUpload" />
+      <div ref="canvasContainer"></div>
+      <div v-if="isChatOpen" class="popUp">
+        <createChats :location="clickedCoordinates" @close="isChatOpen = false" />
+      </div>
     </div>
   </template>
   
@@ -13,6 +14,7 @@
   import { IFCLoader } from 'three/examples/jsm/loaders/IFCLoader.js'; // Import IFCLoader
   import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'; // Import GLTFExporter
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // Import OrbitControls
+  import createChats from './createChats.vue'; // Import createChat component
   
   // Reference for the container where the model will be rendered
   const canvasContainer = ref(null);
@@ -23,6 +25,8 @@ let scene, camera, renderer, loader, controls, raycaster, mouse;
 // Initialize raycaster and mouse
 raycaster = new THREE.Raycaster();
 mouse = new THREE.Vector2();
+const isChatOpen = ref(false);
+const clickedCoordinates = ref({ x: 0, y: 0, z: 0 });
 
 onMounted(() => {
   // Set up the scene, camera, and renderer
@@ -112,27 +116,18 @@ function animate() {
   
   // Convert the IFC model to GLTF
   const convertToGLTF = (model) => {
-    const exporter = new GLTFExporter();
-    exporter.parse(
-      model,
-      (gltf) => {
-        // Save the GLTF file or use it in the scene
-        const blob = new Blob([JSON.stringify(gltf)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-  
-        // Download the GLTF file
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'model.gltf';
-        link.click();
-  
-        console.log('GLTF file created:', gltf);
-      },
-      (error) => {
-        console.error('Error exporting GLTF:', error);
-      }
-    );
-  };
+  const exporter = new GLTFExporter();
+  exporter.parse(
+    model,
+    (gltf) => {
+      // Log the GLTF data to the console or use it as needed
+      console.log('GLTF data:', gltf);
+    },
+    (error) => {
+      console.error('Error exporting GLTF:', error);
+    }
+  );
+};
   
   // Handle click event to get coordinates
 function onClick(event) {
@@ -150,10 +145,25 @@ function onClick(event) {
   if (intersects.length > 0) {
     const point = intersects[0].point; // Get the intersection point
     console.log('Clicked coordinates:', point.x, point.y, point.z);
+    clickedCoordinates.value = { x: point.x, y: point.y, z: point.z }; // Update coordinates
+    isChatOpen.value = true; // Open the chat component
   }
 }
   </script>
   
   <style scoped>
+  .popUp {
+    height: 70vh;
+    overflow: auto;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000; /* Ensure it appears above other elements */
+  }
   /* Optional: you can style the div container here if needed */
   </style>
