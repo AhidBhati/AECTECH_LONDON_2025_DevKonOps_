@@ -90,7 +90,8 @@ function animate() {
   };
   
   // Load the IFC model and convert it to GLTF
-  const loadIfcModel = (file) => {
+// Load the IFC model and convert it to GLTF
+const loadIfcModel = (file) => {
   const reader = new FileReader();
   reader.onload = async (e) => {
     const ifcData = e.target.result;
@@ -102,13 +103,28 @@ function animate() {
       // Scale the model down
       model.scale.set(0.1, 0.1, 0.1); // Adjust the scale values as needed
 
+      // Center the model in the scene
+      const boundingBox = new THREE.Box3().setFromObject(model); // Get the bounding box of the model
+      const center = boundingBox.getCenter(new THREE.Vector3()); // Get the center of the bounding box
+      const size = boundingBox.getSize(new THREE.Vector3()); // Get the size of the bounding box
+
+      // Adjust the model's position to center it
+      model.position.set(
+        model.position.x - center.x,
+        model.position.y - center.y,
+        model.position.z - center.z
+      );
+
+      // Optionally, move the model slightly to the left
+      model.position.x -= size.x / 2;
+
       // Add the model to the scene
       scene.add(model);
 
       // Convert the IFC model to GLTF
       convertToGLTF(model);
     } catch (error) {
-      console.error('Error parsing IFC file:', error);
+      console.error("Error parsing IFC file:", error);
     }
   };
   reader.readAsArrayBuffer(file);
