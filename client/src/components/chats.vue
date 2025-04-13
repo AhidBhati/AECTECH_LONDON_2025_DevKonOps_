@@ -2,7 +2,13 @@
   <div class="container">
     <!-- Left Section: Table -->
     <div class="table-container">
-      <h1>Issues</h1>
+      <div class="header">
+        <h1>Issues</h1>
+        <!-- Highlighted Button -->
+        <button :class="added ? 'highlighted-btn' : ''" @click="openCommentsPopup">
+          Notify
+        </button>
+      </div>
       <div v-if="chats.length > 0">
         <table>
           <thead>
@@ -39,6 +45,16 @@
         <viewComments :chatID="selectedChatID" @close="closeViewComments"/>
       </div>
     </div>
+    <div class="notify-overlay" v-if="notify">
+      <div class="" style="display: flex; align-items: center;">
+        <h1>New Issues Added</h1>
+        <button class="close-button" @click="notify = false">X</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button @click="closeNewIssues" style=" border: none; font-size: 20px; cursor: pointer;">X</button>
+      </div>
+      <p>- - - - - - - - - - - - - - - - - - - - - - - - - - - </p>
+      <p>- - - - - - - - - - - - - - - - - - - - - - - - - - - </p>
+      <p>- - - - - - - - - - - - - - - - - - - - - - - - - - - </p>
+    </div>
   </div>
 </template>
 
@@ -58,7 +74,12 @@ export default {
       chats: [], // Array to store chats
       isViewCommentsOpen: false,
       selectedChatID: null,
-    };
+      added:false,
+      notify: false,
+      loadingLength: 0,
+      newLength: 0,
+      counter: 0,
+    }
   },
   methods: {
     // Fetch all chats from the backend
@@ -80,9 +101,48 @@ export default {
       this.isViewCommentsOpen = false; // Close the popup
       this.selectedChatID = null; // Clear the selected chat ID
     },
+    openCommentsPopup(){
+      this.notify = true;
+    },
+    pollingFunction() {
+      setInterval(() => {
+        this.fetchCommits(); // Fetch chats every 5 seconds
+      }, 5000);
+    },
+    fetchCommits(){
+      axios.get("http://localhost:5000/api/comments")
+        .then(response => {
+          console.log("Commits fetched successfully:", response.data);
+          console.log("Commits:", response.data.length);
+          if(this.counter == 0){
+            console.log("First time fetching comments");
+            this.loadingLength = response.data.length;
+          }else {
+            this.newLength = response.data.length;
+            if (this.newLength > this.loadingLength) {
+              console.log("New comments available!");
+              this.notify = true; // Show the notification if there are new comments
+              this.added = true;
+            } 
+          }
+          this.counter++;
+        })
+        .catch(error => {
+          console.error("Error fetching commits:", error);
+        });
+    },
+    closeNewIssues(){
+      this.notify = false; // Hide the notification
+      this.added = false; // Reset the added state
+      this.counter = 0; // Reset the counter
+      this.newLength = 0; // Reset the new length
+      this.loadingLength = 0; // Update the loading length to the new length
+      console.log("New issues closed");
+    }
   },
   mounted() {
     // Fetch chats when the component is mounted
+    this.pollingFunction()
     this.fetchChats();
     // Listen for the chatCreated event
     EventBus.on("chatCreated", () => {
@@ -99,6 +159,37 @@ export default {
 </script>
 
 <style scoped>
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Highlighted Button */
+.highlighted-btn {
+  background-color: #ffcc00; /* Yellow background */
+  color: #000; /* Black text */
+  border: 2px solid #ffa500; /* Orange border */
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.highlighted-btn:hover {
+  background-color: #ffa500; /* Darker yellow on hover */
+  color: #fff; /* White text on hover */
+  box-shadow: 0 0 10px #ffa500; /* Glow effect */
+}
+
+.highlighted-btn:focus {
+  outline: none;
+  box-shadow: 0 0 15px #ffcc00; /* Focus glow effect */
+}
+
 /* Container for the layout */
 .container {
   display: flex;
@@ -185,5 +276,17 @@ button:hover {
   border: none;
   font-size: 20px;
   cursor: pointer;
+}
+
+.notify-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Center the notification */
+  background: white;      
+  padding: 20px;
+  border-radius: 8px;
+
+  z-index: 1000;
 }
 </style>
